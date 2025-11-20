@@ -21,7 +21,6 @@ export default function MistakesListPage() {
   const [mistakes, setMistakes] = useState<MistakeWithGame[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [allTags, setAllTags] = useState<string[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalMistakes, setTotalMistakes] = useState(0);
@@ -261,7 +260,7 @@ export default function MistakesListPage() {
                             boardState={boardState}
                             playerColor={mistake.game.playerColor as 'black' | 'white'}
                             lastMove={boardState.lastMoveVertex}
-                            showCoordinates={false}
+                            showCoordinates={true}
                           />
                         </div>
                       </div>

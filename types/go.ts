@@ -16,7 +16,6 @@ export interface ParsedGame {
 
 /**
  * Board state representation for position snapshots
- * This replaces FEN from the chess version
  */
 export interface BoardState {
   boardSize: number;

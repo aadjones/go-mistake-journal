@@ -16,7 +16,6 @@ interface SimpleGobanProps {
  */
 export function SimpleGoban({
   boardState,
-  playerColor,
   lastMove = null,
   showCoordinates = true,
 }: SimpleGobanProps) {

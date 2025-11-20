@@ -171,7 +171,7 @@ export default function NewMistakePage() {
                 value={briefDescription}
                 onChange={e => setBriefDescription(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Didn't see backward knight move"
+                placeholder="Played too slow, wrong direction, missed cutting point"
                 required
               />
             </div>
@@ -190,7 +190,7 @@ export default function NewMistakePage() {
                 }}
                 onFocus={() => setShowTagSuggestions(true)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="e.g., Calculation, Tactics, Time Pressure"
+                placeholder="e.g., Life and Death, Shape, Direction, Reading, Endgame"
                 required
               />
               {showTagSuggestions && filteredTags.length > 0 && primaryTag && (
@@ -224,9 +224,9 @@ export default function NewMistakePage() {
                 value={detailedReflection}
                 onChange={e => setDetailedReflection(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 h-32"
-                placeholder="What candidate moves did you consider?
-What was your opponent's threat?
-What would you need to think about differently next time?"
+                placeholder="What was the correct direction of play?
+What shape or tesuji did I miss?
+What will I look for differently next time?"
               />
               <p className="text-xs text-gray-500 mt-1">Supports markdown formatting</p>
             </div>

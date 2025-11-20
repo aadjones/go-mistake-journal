@@ -40,7 +40,9 @@
       "Bash(tree:*)",
       "Bash(python3:*)",
       "Bash(npx prisma db push:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(node test-sgf.js:*)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": [],
     "ask": []

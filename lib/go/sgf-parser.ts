@@ -131,26 +131,6 @@ export function getTimeControl(parsedGame: ParsedGame): string | undefined {
 }
 
 /**
- * Parse rank string (e.g., "5k", "2d") to numeric value for comparison
- * @param rank - Rank string from SGF
- * @returns Numeric rank value (negative for kyu, positive for dan)
- */
-function parseRank(rank: string | undefined): number | undefined {
-  if (!rank) return undefined;
-
-  const match = rank.match(/^(\d+)([kd])/i);
-  if (!match) return undefined;
-
-  const [, value, type] = match;
-  const numValue = parseInt(value, 10);
-
-  if (isNaN(numValue)) return undefined;
-
-  // Convert to numeric scale: 30k = -30, 1k = -1, 1d = 1, 9d = 9
-  return type.toLowerCase() === 'k' ? -numValue : numValue;
-}
-
-/**
  * Extract opponent rank from SGF headers based on player color
  * @param parsedGame - Parsed game object
  * @param playerColor - Color the journaling player was playing

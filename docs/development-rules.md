@@ -82,69 +82,68 @@ module.exports = {
 
 Examples:
 
-- ✅ Use `chess.js` `.fen()` method instead of building FEN generator
-- ✅ Use `chess.js` `.undo()` method for navigation instead of custom state tracking
+- ✅ Use `@sabaki/sgf` for SGF parsing instead of writing a custom parser
 - ✅ Search npm/GitHub for established solutions to common problems
+- ✅ Use well-tested libraries for game logic when available
 
 Before implementing any non-trivial algorithm:
 
-1. Check if chess.js has it built-in
-2. Search for specialized libraries (e.g., chess analysis, opening databases)
+1. Check if established Go libraries already have it
+2. Search for specialized libraries (e.g., SGF parsers, joseki databases)
 3. Only implement custom code if no suitable library exists
 
-### PGN Data Integrity
+### SGF Data Integrity
 
-**NEVER** manually write or generate PGN game data.
+**Use real SGF data from actual games** rather than hand-crafting test data.
 
-AI language models (including the one writing this) will inevitably hallucinate illegal chess moves when generating PGN strings. Always:
+When creating test fixtures:
 
-1. **Use real PGN data** from actual games played on Lichess, Chess.com, or other platforms
-2. **Fetch PGN from the web** using the Lichess API or game export URLs
-3. **Validate PGN** by loading it with chess.js before using in tests
-4. **Keep test PGNs simple** - shorter games are easier to validate
+1. **Use real SGF data** from games played on OGS, KGS, Fox Go, or other servers
+2. **Download SGF files** from Go servers or game databases
+3. **Keep test SGFs simple** - shorter games are easier to validate and debug
+4. **Validate SGF structure** - ensure proper SGF format with required tags
 
-### PGN Annotation Cleaning
+### SGF Format Requirements
 
-**chess.js cannot parse PGN annotations** like clock times `{ [%clk 0:03:00] }` that Lichess and other platforms include.
+SGF files for Go must follow the Smart Game Format specification:
 
-Always clean PGN before passing it to chess.js:
-
-```typescript
-// Strip all {…} annotations before parsing
-const cleanedPgn = pgn.replace(/\{[^}]*\}/g, '').trim();
-chess.loadPgn(cleanedPgn);
+```sgf
+(;GM[1]FF[4]CA[UTF-8]SZ[19]KM[6.5]
+PW[White Player]PB[Black Player]
+;B[pd];W[dp];B[pq]...)
 ```
 
-This cleaning happens in:
+Key requirements:
 
-- `lib/chess/pgn-parser.ts` - when importing games via API
-- `app/games/[id]/page.tsx` - when displaying games in the viewer
+- `GM[1]` - Game type (1 = Go)
+- `FF[4]` - File format version
+- `SZ[19]` - Board size (19x19, 13x13, or 9x9)
+- Moves in format `B[coordinate]` or `W[coordinate]`
 
 ### Examples
 
-#### Good: Real game from Lichess
+#### Good: Real game from OGS
 
 ```typescript
-// Fetched from https://lichess.org/game/export/q7ZvsdUF
-export const REAL_GAME = `[Event "Winter Arena"]
-[Site "lichess.org"]
-[Date "2017.12.28"]
-...
-1. d4 d5 2. c4 c6 ...`;
+// Downloaded from actual game
+export const REAL_GAME = `(;GM[1]FF[4]CA[UTF-8]SZ[19]KM[6.5]
+PW[Player1]PB[Player2]WR[5k]BR[6k]
+DT[2025-01-19]
+;B[pd];W[dp];B[pq];W[dd]...)`;
 ```
 
-#### Bad: Hand-written PGN
+#### Bad: Incomplete or invalid SGF
 
 ```typescript
-// DON'T DO THIS - will have illegal moves
-export const FAKE_GAME = `1. e4 e5 2. Nf3 Nc6 3. Bb5 Nce7 ...`;
+// DON'T DO THIS - missing required tags
+export const INCOMPLETE_SGF = `(;B[pd];W[dp])`;
 ```
 
 ## Testing Philosophy
 
-- Write tests for core logic (PGN parsing, FEN extraction, move validation)
+- Write tests for core logic (SGF parsing, board state extraction, move navigation)
 - Don't test UI components or libraries we don't own
-- Use real, validated data in test fixtures
+- Use real, validated SGF data in test fixtures
 - Test behaviors, not implementation details
 
 ## Architecture
@@ -156,12 +155,12 @@ export const FAKE_GAME = `1. e4 e5 2. Nf3 Nc6 3. Bb5 Nce7 ...`;
 
 ## Database Constraints
 
-### Unique PGN Constraint
+### Unique SGF Constraint
 
-The `Game` model has a unique constraint on the `pgn` field to prevent duplicate game imports. This means:
+The `Game` model has a unique constraint on the `sgf` field to prevent duplicate game imports. This means:
 
-- Two identical PGN strings cannot be imported
+- Two identical SGF strings cannot be imported
 - The API returns a 409 Conflict status with message "This game has already been imported"
-- PGN is cleaned (annotations removed) before storage, so the comparison is based on the raw PGN string
+- SGF content is stored as-is for exact duplicate detection
 
 If you need to reimport a game, delete it first via the API or database.

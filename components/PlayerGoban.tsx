@@ -20,7 +20,6 @@ export function PlayerGoban({
   boardState,
   playerColor,
   lastMove = null,
-  customMarkers = {},
   showCoordinates = true,
 }: PlayerGobanProps) {
   return (

@@ -72,7 +72,7 @@ rm -rf __tests__/test-dbs
 
 From `development-rules.md`:
 
-- Test core logic (PGN parsing, FEN extraction, move validation, repositories)
+- Test core logic (SGF parsing, board state extraction, move navigation, repositories)
 - Don't test UI components or libraries we don't own
 - Use real, validated data in test fixtures
 - Test behaviors, not implementation details

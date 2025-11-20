@@ -7,15 +7,20 @@ import { createTestDatabase } from '../../helpers/test-db';
 let prisma: PrismaClient;
 let cleanup: () => Promise<void>;
 
-// Helper to create test game input with unique PGN
-const createTestGameInput = (overrides?: Partial<CreateGameInput>): CreateGameInput => ({
-  pgn: `[Event "Test ${Date.now()}-${Math.random()}"]\n1. e4 e5 2. Nf3`,
-  playerColor: 'white',
-  opponentRating: 1500,
-  timeControl: '600+0',
-  datePlayed: new Date('2024-01-01'),
-  ...overrides,
-});
+// Helper to create test game input with unique SGF
+const createTestGameInput = (overrides?: Partial<CreateGameInput>): CreateGameInput => {
+  const uniqueId = `${Date.now()}-${Math.random()}`;
+  return {
+    sgf: `(;GM[1]FF[4]CA[UTF-8]SZ[19]KM[6.5]
+PW[Test${uniqueId}]PB[Opponent]
+;B[pd];W[dp];B[pq])`,
+    playerColor: 'white',
+    opponentRank: '5k',
+    timeControl: '600+0',
+    datePlayed: new Date('2024-01-01'),
+    ...overrides,
+  };
+};
 
 describe('games-repository', () => {
   beforeAll(async () => {
@@ -40,9 +45,9 @@ describe('games-repository', () => {
       const game = await gamesRepo.createGame(prisma, input);
 
       expect(game.id).toBeDefined();
-      expect(game.pgn).toBe(input.pgn);
+      expect(game.sgf).toBe(input.sgf);
       expect(game.playerColor).toBe(input.playerColor);
-      expect(game.opponentRating).toBe(input.opponentRating);
+      expect(game.opponentRank).toBe(input.opponentRank);
       expect(game.timeControl).toBe(input.timeControl);
       expect(game.datePlayed).toEqual(input.datePlayed);
       expect(game.createdAt).toBeInstanceOf(Date);
@@ -50,16 +55,16 @@ describe('games-repository', () => {
 
     it('should create a game with only required fields', async () => {
       const input = createTestGameInput({
-        opponentRating: undefined,
+        opponentRank: undefined,
         timeControl: undefined,
         datePlayed: undefined,
       });
       const game = await gamesRepo.createGame(prisma, input);
 
       expect(game.id).toBeDefined();
-      expect(game.pgn).toBe(input.pgn);
+      expect(game.sgf).toBe(input.sgf);
       expect(game.playerColor).toBe(input.playerColor);
-      expect(game.opponentRating).toBeUndefined();
+      expect(game.opponentRank).toBeUndefined();
       expect(game.timeControl).toBeUndefined();
       expect(game.datePlayed).toBeUndefined();
     });
@@ -81,7 +86,7 @@ describe('games-repository', () => {
 
       expect(retrieved).toBeDefined();
       expect(retrieved?.id).toBe(created.id);
-      expect(retrieved?.pgn).toBe(created.pgn);
+      expect(retrieved?.sgf).toBe(created.sgf);
     });
 
     it('should return null for non-existent game', async () => {
@@ -115,7 +120,7 @@ describe('games-repository', () => {
         data: {
           gameId: created.id,
           moveIndex: 19,
-          fenPosition: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+          boardState: 'pd,dp,pq',
           briefDescription: 'Test mistake',
           primaryTag: 'calculation',
         },
@@ -174,7 +179,7 @@ describe('games-repository', () => {
         data: {
           gameId: created.id,
           moveIndex: 19,
-          fenPosition: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+          boardState: 'pd,dp,pq',
           briefDescription: 'Test mistake',
           primaryTag: 'calculation',
         },

@@ -9,10 +9,15 @@ let prisma: PrismaClient;
 let cleanup: () => Promise<void>;
 
 const createTestGame = async () => {
+  // Minimal valid SGF for testing - unique per game
+  const uniqueId = `${Date.now()}-${Math.random()}`;
+  const sgf = `(;GM[1]FF[4]CA[UTF-8]SZ[19]KM[6.5]
+PW[Test${uniqueId}]PB[Opponent]
+;B[pd];W[dp];B[pq])`;
+
   return gamesRepo.createGame(prisma, {
-    pgn: `[Event "Test ${Date.now()}-${Math.random()}"]\n1. e4 e5 2. Nf3`,
+    sgf,
     playerColor: 'white',
-    opponentRating: 1500,
   });
 };
 
@@ -22,7 +27,7 @@ const createTestMistakeInput = (
 ): CreateMistakeInput => ({
   gameId,
   moveIndex: 19,
-  fenPosition: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+  boardState: 'pd,dp,pq', // Simple board state representation
   briefDescription: 'Missed a tactic',
   primaryTag: 'calculation',
   ...overrides,
@@ -56,7 +61,7 @@ describe('mistakes-repository', () => {
       expect(mistake.id).toBeDefined();
       expect(mistake.gameId).toBe(game.id);
       expect(mistake.moveIndex).toBe(input.moveIndex);
-      expect(mistake.fenPosition).toBe(input.fenPosition);
+      expect(mistake.boardState).toBe(input.boardState);
       expect(mistake.briefDescription).toBe(input.briefDescription);
       expect(mistake.primaryTag).toBe(input.primaryTag);
       expect(mistake.detailedReflection).toBe(input.detailedReflection);

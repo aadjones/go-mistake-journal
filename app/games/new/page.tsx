@@ -26,7 +26,7 @@ export default function NewGamePage() {
       setSgf(text);
       setFileName(file.name);
       setError(null);
-    } catch (err) {
+    } catch {
       setError('Failed to read file');
       setFileName(null);
     }

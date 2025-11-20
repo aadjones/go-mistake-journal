@@ -141,15 +141,6 @@ export default function GameViewerPage() {
     return game.mistakes.find(m => m.moveIndex === currentMoveIndex);
   };
 
-  // Helper to convert vertex to coordinate notation (e.g., "Q16")
-  const vertexToCoordinate = (vertex: Vertex | null, boardSize: number = 19): string => {
-    if (!vertex) return 'Pass';
-    const [x, y] = vertex;
-    const file = 'ABCDEFGHJKLMNOPQRST'[x]; // Note: No 'I' in Go coordinates
-    const rank = boardSize - y;
-    return `${file}${rank}`;
-  };
-
   // Format move display (e.g., "Move 42 (B)")
   const formatMoveDisplay = (index: number): string => {
     if (index === 0) return 'Start';
