@@ -38,9 +38,6 @@ export default function MistakesListPage() {
 
         if (statsResponse.ok) {
           setStats(statsData.topTags || []);
-          // Extract unique tags from stats for filtering
-          const tags = statsData.topTags.map((t: TagStat) => t.tag);
-          setAllTags(tags);
         }
       } catch (err) {
         console.error('Failed to load stats:', err);
