@@ -2,13 +2,14 @@
 
 import { useState } from 'react';
 import * as Tooltip from '@radix-ui/react-tooltip';
-import { PlayerChessboard } from './PlayerChessboard';
+import { PlayerGoban } from './PlayerGoban';
+import type { BoardState } from '@/types/go';
 
 interface MistakeData {
   id: string;
-  fenPosition: string;
+  boardState: BoardState;
   briefDescription: string;
-  playerColor: string;
+  playerColor: 'black' | 'white';
 }
 
 interface MistakeHoverTooltipProps {
@@ -30,9 +31,9 @@ export function MistakeHoverTooltip({ mistakeId, children }: MistakeHoverTooltip
         const { mistake } = await response.json();
         setMistakeData({
           id: mistake.id,
-          fenPosition: mistake.fenPosition,
+          boardState: mistake.boardState,
           briefDescription: mistake.briefDescription,
-          playerColor: mistake.game.playerColor,
+          playerColor: mistake.game.playerColor as 'black' | 'white',
         });
       }
     } catch (err) {
@@ -62,9 +63,10 @@ export function MistakeHoverTooltip({ mistakeId, children }: MistakeHoverTooltip
             {mistakeData && (
               <div className="space-y-2">
                 <div className="w-full">
-                  <PlayerChessboard
-                    position={mistakeData.fenPosition}
+                  <PlayerGoban
+                    boardState={mistakeData.boardState}
                     playerColor={mistakeData.playerColor}
+                    lastMove={mistakeData.boardState.lastMoveVertex}
                   />
                 </div>
                 <div className="text-xs text-gray-700 font-medium">

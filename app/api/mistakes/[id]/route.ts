@@ -26,7 +26,13 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: 'Mistake not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ mistake });
+    // Parse the boardState JSON string
+    const parsedMistake = {
+      ...mistake,
+      boardState: JSON.parse(mistake.boardState),
+    };
+
+    return NextResponse.json({ mistake: parsedMistake });
   } catch (error) {
     console.error('Failed to fetch mistake:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
