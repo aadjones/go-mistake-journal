@@ -63,7 +63,7 @@ export async function POST(request: Request) {
       messages: [
         {
           role: 'user',
-          content: `You are analyzing chess mistakes to help a player improve. Below are ${mistakes.length} recent mistakes they've recorded:
+          content: `You are analyzing Go mistakes to help a player improve. Below are ${mistakes.length} recent mistakes they've recorded:
 
 ${mistakesSummary}
 

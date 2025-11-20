@@ -12,13 +12,13 @@ const prisma = new PrismaClient();
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { gameId, moveIndex, fenPosition, briefDescription, primaryTag, detailedReflection } =
+    const { gameId, moveIndex, boardState, briefDescription, primaryTag, detailedReflection } =
       body;
 
     // Validate required fields
-    if (!gameId || moveIndex === undefined || !fenPosition || !briefDescription || !primaryTag) {
+    if (!gameId || moveIndex === undefined || !boardState || !briefDescription || !primaryTag) {
       return NextResponse.json(
-        { error: 'gameId, moveIndex, fenPosition, briefDescription, and primaryTag are required' },
+        { error: 'gameId, moveIndex, boardState, briefDescription, and primaryTag are required' },
         { status: 400 }
       );
     }
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     const input: CreateMistakeInput = {
       gameId,
       moveIndex: parseInt(moveIndex, 10),
-      fenPosition,
+      boardState,
       briefDescription,
       primaryTag,
       detailedReflection,

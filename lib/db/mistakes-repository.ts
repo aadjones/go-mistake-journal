@@ -8,7 +8,7 @@ function toDomainMistake(prismaMistake: {
   id: string;
   gameId: string;
   moveIndex: number;
-  fenPosition: string;
+  boardState: string;
   briefDescription: string;
   primaryTag: string;
   detailedReflection: string | null;
@@ -19,7 +19,7 @@ function toDomainMistake(prismaMistake: {
     id: prismaMistake.id,
     gameId: prismaMistake.gameId,
     moveIndex: prismaMistake.moveIndex,
-    fenPosition: prismaMistake.fenPosition,
+    boardState: prismaMistake.boardState,
     briefDescription: prismaMistake.briefDescription,
     primaryTag: prismaMistake.primaryTag,
     detailedReflection: prismaMistake.detailedReflection ?? undefined,
@@ -39,7 +39,7 @@ export async function createMistake(
     data: {
       gameId: input.gameId,
       moveIndex: input.moveIndex,
-      fenPosition: input.fenPosition,
+      boardState: input.boardState,
       briefDescription: input.briefDescription,
       primaryTag: input.primaryTag,
       detailedReflection: input.detailedReflection,

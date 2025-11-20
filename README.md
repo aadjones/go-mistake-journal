@@ -1,6 +1,6 @@
-# Chess Mistake Journal
+# Go Mistake Journal
 
-A systematic tool for tracking and analyzing chess mistakes to accelerate improvement.
+A systematic tool for tracking and analyzing Go (baduk/weiqi) mistakes to accelerate improvement.
 
 ## Quick Start
 
@@ -23,8 +23,9 @@ Open [http://localhost:3000](http://localhost:3000)
 - **React 19**
 - **Tailwind CSS 3.4** (utility-first styling)
 - **Prisma 6** + SQLite (database ORM)
-- **chess.js** (PGN parsing, move validation)
-- **react-chessboard** (board UI)
+- **@sabaki/sgf** (SGF parsing)
+- **@sabaki/go-board** (Go game logic & move validation)
+- **Custom SVG Go board renderer** (lightweight, no external dependencies)
 - **Vitest 4** (testing)
 
 ## Commands
@@ -58,7 +59,7 @@ npm run reset            # Clear build cache
 
 ```
 ├── app/              # Next.js App Router pages & API routes
-├── lib/              # Core business logic (chess utilities, repositories)
+├── lib/              # Core business logic (Go utilities, repositories)
 ├── types/            # TypeScript type definitions
 ├── prisma/           # Database schema & migrations
 ├── __tests__/        # Test files

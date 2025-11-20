@@ -1,15 +1,15 @@
 /**
  * Centralized move number calculations to avoid inconsistencies.
  *
- * In chess notation:
- * - Move numbers increment after each Black move
- * - White's moves don't have "..." suffix
- * - Black's moves have "..." suffix (e.g., "1..." for Black's first move)
+ * In standard game notation:
+ * - Move numbers increment after each second player's move
+ * - First player's moves don't have "..." suffix
+ * - Second player's moves have "..." suffix (e.g., "1..." for second player's first move)
  *
  * In our array representation:
  * - currentMoveIndex = 0 is the starting position (no moves applied)
- * - currentMoveIndex = 1 is after White's first move
- * - currentMoveIndex = 2 is after Black's first move
+ * - currentMoveIndex = 1 is after first player's first move
+ * - currentMoveIndex = 2 is after second player's first move
  * - etc.
  */
 
@@ -23,9 +23,9 @@ export function getMoveNumber(moveIndex: number): number {
 }
 
 /**
- * Determines if a move index represents a White move.
+ * Determines if a move index represents a first player move.
  * @param moveIndex - The index in the moves array
- * @returns true if it's White's move, false if Black's
+ * @returns true if it's first player's move, false if second player's
  */
 export function isWhiteMove(moveIndex: number): boolean {
   return moveIndex % 2 === 1;

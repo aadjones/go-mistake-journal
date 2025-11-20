@@ -1,7 +1,7 @@
 {
-  "name": "chess-mistake-journal",
+  "name": "go-mistake-journal",
   "version": "0.1.0",
-  "description": "A chess mistake journaling and analysis tool",
+  "description": "A Go mistake journaling and analysis tool",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -24,10 +24,11 @@
     "@anthropic-ai/sdk": "^0.68.0",
     "@prisma/client": "^6.18.0",
     "@radix-ui/react-tooltip": "^1.2.8",
-    "chess.js": "^1.4.0",
+    "@sabaki/go-board": "^1.4.3",
+    "@sabaki/immutable-gametree": "^1.9.4",
+    "@sabaki/sgf": "^3.4.7",
     "next": "^16.0.1",
     "react": "^19.2.0",
-    "react-chessboard": "^5.8.3",
     "react-dom": "^19.2.0"
   },
   "devDependencies": {

@@ -9,7 +9,7 @@ const LOADING_MESSAGES = [
   'Identifying emotional patterns...',
   'Synthesizing insights from your words...',
   'Finding connections you might have missed...',
-  'Processing your chess journey...',
+  'Processing your Go journey...',
 ];
 
 export function InsightLoadingSpinner() {

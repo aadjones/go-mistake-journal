@@ -1,20 +1,20 @@
-import { Color } from './chess';
+import { Color } from './go';
 import { Mistake } from './mistake';
 
 export interface Game {
   id: string;
-  pgn: string;
+  sgf: string;
   playerColor: Color;
-  opponentRating?: number;
+  opponentRank?: string;
   timeControl?: string;
   datePlayed?: Date;
   createdAt: Date;
 }
 
 export interface CreateGameInput {
-  pgn: string;
+  sgf: string;
   playerColor: Color;
-  opponentRating?: number;
+  opponentRank?: string;
   timeControl?: string;
   datePlayed?: Date;
 }

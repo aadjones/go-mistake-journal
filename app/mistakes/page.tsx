@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { PlayerChessboard } from '@/components/PlayerChessboard';
+import { PlayerGoban } from '@/components/PlayerGoban';
+import { deserializeBoardState } from '@/lib/go/board-state-extractor';
 import { formatTimeControl } from '@/lib/utils/format-time-control';
-import { formatMoveDisplay } from '@/lib/utils/move-math';
 import type { Mistake, Game } from '@prisma/client';
 
 type MistakeWithGame = Mistake & { game: Game };
@@ -157,7 +157,7 @@ export default function MistakesListPage() {
         <div className="bg-white rounded-lg shadow p-8 text-center">
           <h2 className="text-xl font-semibold mb-2">No mistakes recorded yet</h2>
           <p className="text-gray-600 mb-6">
-            Track and reflect on your chess mistakes to find patterns and improve. Get started by
+            Track and reflect on your Go mistakes to find patterns and improve. Get started by
             importing a game and recording your first mistake.
           </p>
           <div className="space-y-4 max-w-md mx-auto text-left">
@@ -171,7 +171,7 @@ export default function MistakesListPage() {
               <span className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-semibold">
                 2
               </span>
-              <p className="text-sm text-gray-700">Paste your PGN and select your color</p>
+              <p className="text-sm text-gray-700">Paste your SGF and select your color</p>
             </div>
             <div className="flex items-start gap-3">
               <span className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-semibold">
@@ -249,79 +249,84 @@ export default function MistakesListPage() {
           {/* Main Content - Mistake Cards */}
           <div className="lg:col-span-3">
             <div className="space-y-4">
-              {mistakes.map(mistake => (
-                <div key={mistake.id} className="bg-white rounded-lg shadow p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Chessboard Preview */}
-                    <div className="md:col-span-1">
-                      <div className="max-w-xs mx-auto">
-                        <PlayerChessboard
-                          position={mistake.fenPosition}
-                          playerColor={mistake.game.playerColor}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Mistake Details */}
-                    <div className="md:col-span-2 space-y-2">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="font-semibold text-lg">{mistake.briefDescription}</h3>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
-                              {mistake.primaryTag}
-                            </span>
-                            <span className="text-sm text-gray-500">
-                              {formatMoveDisplay(mistake.moveIndex)}
-                            </span>
-                          </div>
+              {mistakes.map(mistake => {
+                const boardState = deserializeBoardState(mistake.boardState);
+                return (
+                  <div key={mistake.id} className="bg-white rounded-lg shadow p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Go Board Preview */}
+                      <div className="md:col-span-1">
+                        <div className="max-w-xs mx-auto">
+                          <PlayerGoban
+                            boardState={boardState}
+                            playerColor={mistake.game.playerColor as 'black' | 'white'}
+                            lastMove={boardState.lastMoveVertex}
+                            showCoordinates={false}
+                          />
                         </div>
                       </div>
 
-                      {mistake.detailedReflection && (
-                        <p className="text-sm text-gray-700 line-clamp-3">
-                          {mistake.detailedReflection}
-                        </p>
-                      )}
+                      {/* Mistake Details */}
+                      <div className="md:col-span-2 space-y-2">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h3 className="font-semibold text-lg">{mistake.briefDescription}</h3>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
+                                {mistake.primaryTag}
+                              </span>
+                              <span className="text-sm text-gray-500">
+                                Move {mistake.moveIndex}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
 
-                      <div className="pt-2 border-t text-sm text-gray-600">
-                        <p>
-                          <strong>Game:</strong> {mistake.game.playerColor} vs{' '}
-                          {mistake.game.opponentRating
-                            ? `${mistake.game.opponentRating}`
-                            : 'opponent'}
-                          {mistake.game.timeControl &&
-                            ` • ${formatTimeControl(mistake.game.timeControl)}`}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Played{' '}
-                          {mistake.game.datePlayed
-                            ? new Date(mistake.game.datePlayed).toLocaleDateString()
-                            : 'Unknown date'}
-                        </p>
-                      </div>
+                        {mistake.detailedReflection && (
+                          <p className="text-sm text-gray-700 line-clamp-3">
+                            {mistake.detailedReflection}
+                          </p>
+                        )}
 
-                      <div className="flex gap-2 pt-2">
-                        <button
-                          onClick={() =>
-                            router.push(`/games/${mistake.gameId}?moveIndex=${mistake.moveIndex}`)
-                          }
-                          className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-                        >
-                          View in Game
-                        </button>
-                        <button
-                          onClick={e => handleDelete(mistake.id, e)}
-                          disabled={deletingId === mistake.id}
-                          className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
-                        >
-                          {deletingId === mistake.id ? 'Deleting...' : 'Delete'}
-                        </button>
+                        <div className="pt-2 border-t text-sm text-gray-600">
+                          <p>
+                            <strong>Game:</strong> {mistake.game.playerColor} vs{' '}
+                            {mistake.game.opponentRating
+                              ? `${mistake.game.opponentRating}`
+                              : 'opponent'}
+                            {mistake.game.timeControl &&
+                              ` • ${formatTimeControl(mistake.game.timeControl)}`}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Played{' '}
+                            {mistake.game.datePlayed
+                              ? new Date(mistake.game.datePlayed).toLocaleDateString()
+                              : 'Unknown date'}
+                          </p>
+                        </div>
+
+                        <div className="flex gap-2 pt-2">
+                          <button
+                            onClick={() =>
+                              router.push(`/games/${mistake.gameId}?moveIndex=${mistake.moveIndex}`)
+                            }
+                            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                          >
+                            View in Game
+                          </button>
+                          <button
+                            onClick={e => handleDelete(mistake.id, e)}
+                            disabled={deletingId === mistake.id}
+                            className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
+                          >
+                            {deletingId === mistake.id ? 'Deleting...' : 'Delete'}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Pagination Controls */}

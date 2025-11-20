@@ -1,12 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { Chess } from 'chess.js';
-import { PlayerChessboard } from '@/components/PlayerChessboard';
-import { formatTimeControl } from '@/lib/utils/format-time-control';
-import { getMoveNumber, formatMoveDisplay } from '@/lib/utils/move-math';
+import { PlayerGoban } from '@/components/PlayerGoban';
+import { MoveNavigator } from '@/lib/go/move-navigator';
+import { formatTimeControlFromHeaders } from '@/lib/utils/format-time-control';
+import { serializeBoardState } from '@/lib/go/board-state-extractor';
+import {
+  detectServer,
+  translateFoxRank,
+  formatFoxKomi,
+  formatGameResult,
+} from '@/lib/utils/fox-format';
 import type { Game, Mistake } from '@prisma/client';
+import type { ParsedGame, Vertex } from '@/types/go';
 
 type GameWithMistakes = Game & { mistakes: Mistake[] };
 
@@ -15,16 +22,17 @@ export default function GameViewerPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const gameId = params.id as string;
-  const targetMoveNumber = searchParams.get('move');
   const targetMoveIndex = searchParams.get('moveIndex');
 
   const [game, setGame] = useState<GameWithMistakes | null>(null);
-  const [chessGame, setChessGame] = useState(new Chess());
+  const [navigator, setNavigator] = useState<MoveNavigator | null>(null);
+  const [parsedGame, setParsedGame] = useState<ParsedGame | null>(null);
   const [currentMoveIndex, setCurrentMoveIndex] = useState(0);
-  const [moves, setMoves] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
+  const [lastMoveVertex, setLastMoveVertex] = useState<Vertex | null>(null);
+  const [boardKey, setBoardKey] = useState(0); // Force re-render of board
+  const moveRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   useEffect(() => {
     async function loadGame() {
@@ -38,20 +46,15 @@ export default function GameViewerPage() {
 
         setGame(data.game);
 
-        // Clean PGN by removing annotations that chess.js doesn't handle
-        // This includes clock annotations { [%clk 0:03:00] }, opening names, etc.
-        const cleanedPgn = data.game.pgn.replace(/\{[^}]*\}/g, '').trim();
+        // Use pre-parsed game data from API
+        const parsed = data.parsedGame;
+        setParsedGame(parsed);
 
-        // Create a new Chess instance and load the game
-        const newGame = new Chess();
-        newGame.loadPgn(cleanedPgn);
-        const history = newGame.history();
-        setMoves(history);
-
-        // Reset to starting position
-        newGame.reset();
-        setChessGame(newGame);
+        // Create navigator
+        const nav = new MoveNavigator(parsed);
+        setNavigator(nav);
         setCurrentMoveIndex(0);
+        setLastMoveVertex(null);
         setLoading(false);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
@@ -64,54 +67,41 @@ export default function GameViewerPage() {
 
   // Navigate to target move if specified in URL
   useEffect(() => {
-    if (moves.length > 0 && game) {
-      // Prioritize moveIndex if present (exact position)
-      if (targetMoveIndex) {
-        const index = parseInt(targetMoveIndex);
-        if (!isNaN(index) && index >= 0) {
-          const targetIndex = Math.min(index, moves.length);
-          goToMove(targetIndex);
-          return;
-        }
-      }
-
-      // Fall back to move number (for backward compatibility with "View in Game" links)
-      if (targetMoveNumber) {
-        const moveNum = parseInt(targetMoveNumber);
-        if (!isNaN(moveNum) && moveNum > 0) {
-          // Check which color the player is and navigate to their move
-          let targetIndex;
-          if (game.playerColor === 'white') {
-            // White's move is at even indices: 0, 2, 4, ...
-            targetIndex = (moveNum - 1) * 2;
-          } else {
-            // Black's move is at odd indices: 1, 3, 5, ...
-            targetIndex = (moveNum - 1) * 2 + 1;
-          }
-
-          // Make sure we don't go past the end of the game
-          targetIndex = Math.min(targetIndex, moves.length);
-          goToMove(targetIndex);
-        }
+    if (navigator && targetMoveIndex) {
+      const index = parseInt(targetMoveIndex);
+      if (!isNaN(index) && index >= 0) {
+        const targetIndex = Math.min(index, navigator.getTotalMoves());
+        goToMove(targetIndex);
       }
     }
-  }, [targetMoveNumber, targetMoveIndex, moves.length, game]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [targetMoveIndex, navigator]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const goToMove = (moveIndex: number) => {
-    const newGame = new Chess();
-    let lastMove = null;
-    for (let i = 0; i < moveIndex; i++) {
-      lastMove = newGame.move(moves[i]);
-    }
-    setChessGame(newGame);
+    if (!navigator) return;
+
+    navigator.goToMove(moveIndex);
     setCurrentMoveIndex(moveIndex);
-    setLastMove(lastMove);
+    setLastMoveVertex(navigator.getLastMoveVertex());
+    setBoardKey(prev => prev + 1); // Force board re-render
   };
 
   const goToStart = () => goToMove(0);
   const goToPrevious = () => currentMoveIndex > 0 && goToMove(currentMoveIndex - 1);
-  const goToNext = () => currentMoveIndex < moves.length && goToMove(currentMoveIndex + 1);
-  const goToEnd = () => goToMove(moves.length);
+  const goToNext = () =>
+    navigator && currentMoveIndex < navigator.getTotalMoves() && goToMove(currentMoveIndex + 1);
+  const goToEnd = () => navigator && goToMove(navigator.getTotalMoves());
+
+  // Auto-scroll timeline to current move
+  useEffect(() => {
+    const currentButton = moveRefs.current[currentMoveIndex];
+    if (currentButton) {
+      currentButton.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center',
+      });
+    }
+  }, [currentMoveIndex]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -132,19 +122,42 @@ export default function GameViewerPage() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentMoveIndex, moves.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentMoveIndex, navigator]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAddMistake = () => {
+    if (!navigator) return;
+
     // Navigate to mistake form with current position context
-    const fenPosition = chessGame.fen();
+    const boardState = navigator.getCurrentBoardState();
+    const boardStateJson = serializeBoardState(boardState);
+
     router.push(
-      `/mistakes/new?gameId=${gameId}&moveIndex=${currentMoveIndex}&fen=${encodeURIComponent(fenPosition)}`
+      `/mistakes/new?gameId=${gameId}&moveIndex=${currentMoveIndex}&boardState=${encodeURIComponent(boardStateJson)}`
     );
   };
 
   const getMistakeAtCurrentMove = () => {
     if (!game) return null;
     return game.mistakes.find(m => m.moveIndex === currentMoveIndex);
+  };
+
+  // Helper to convert vertex to coordinate notation (e.g., "Q16")
+  const vertexToCoordinate = (vertex: Vertex | null, boardSize: number = 19): string => {
+    if (!vertex) return 'Pass';
+    const [x, y] = vertex;
+    const file = 'ABCDEFGHJKLMNOPQRST'[x]; // Note: No 'I' in Go coordinates
+    const rank = boardSize - y;
+    return `${file}${rank}`;
+  };
+
+  // Format move display (e.g., "Move 42 (B)")
+  const formatMoveDisplay = (index: number): string => {
+    if (index === 0) return 'Start';
+    if (!parsedGame) return `Move ${index}`;
+
+    const move = parsedGame.moves[index - 1];
+    const color = move.color === 'black' ? 'B' : 'W';
+    return `Move ${index} (${color})`;
   };
 
   if (loading) {
@@ -155,7 +168,7 @@ export default function GameViewerPage() {
     );
   }
 
-  if (error || !game) {
+  if (error || !game || !navigator || !parsedGame) {
     return (
       <div className="max-w-4xl mx-auto mt-8">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6">
@@ -173,6 +186,14 @@ export default function GameViewerPage() {
   }
 
   const currentMistake = getMistakeAtCurrentMove();
+  const totalMoves = navigator.getTotalMoves();
+
+  // Detect server and format data accordingly
+  const server = detectServer(parsedGame.headers, parsedGame.komi);
+  const formattedOpponentRank = translateFoxRank(game.opponentRank || undefined);
+  const formattedKomi = formatFoxKomi(parsedGame.komi, server);
+  const formattedResult = formatGameResult(parsedGame.result, server);
+  const formattedTimeControl = formatTimeControlFromHeaders(parsedGame.headers);
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -186,16 +207,22 @@ export default function GameViewerPage() {
                 <span className="text-gray-600">Playing as:</span>
                 <p className="font-medium capitalize">{game.playerColor}</p>
               </div>
-              {game.opponentRating && (
+              {server && (
                 <div>
-                  <span className="text-gray-600">Opponent:</span>
-                  <p className="font-medium">{game.opponentRating}</p>
+                  <span className="text-gray-600">Server:</span>
+                  <p className="font-medium">{server}</p>
                 </div>
               )}
-              {game.timeControl && (
+              {formattedOpponentRank && (
+                <div>
+                  <span className="text-gray-600">Opponent Rank:</span>
+                  <p className="font-medium">{formattedOpponentRank}</p>
+                </div>
+              )}
+              {formattedTimeControl && (
                 <div>
                   <span className="text-gray-600">Time Control:</span>
-                  <p className="font-medium">{formatTimeControl(game.timeControl)}</p>
+                  <p className="font-medium">{formattedTimeControl}</p>
                 </div>
               )}
               {game.datePlayed && (
@@ -204,29 +231,28 @@ export default function GameViewerPage() {
                   <p className="font-medium">{new Date(game.datePlayed).toLocaleDateString()}</p>
                 </div>
               )}
+              <div>
+                <span className="text-gray-600">Komi:</span>
+                <p className="font-medium">{formattedKomi}</p>
+              </div>
+              <div>
+                <span className="text-gray-600">Result:</span>
+                <p className="font-medium">{formattedResult}</p>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Center - Chessboard */}
+        {/* Center - Go Board */}
         <div className="lg:col-span-6">
           <div className="bg-white rounded-lg shadow p-4">
             <div className="max-w-lg mx-auto">
-              <PlayerChessboard
-                position={chessGame.fen()}
-                playerColor={game.playerColor}
-                customSquareStyles={
-                  lastMove
-                    ? {
-                        [lastMove.from]: {
-                          backgroundColor: 'rgba(255, 255, 0, 0.4)',
-                        },
-                        [lastMove.to]: {
-                          backgroundColor: 'rgba(255, 255, 0, 0.4)',
-                        },
-                      }
-                    : undefined
-                }
+              <PlayerGoban
+                key={boardKey}
+                boardState={navigator.getCurrentBoardState()}
+                playerColor={game.playerColor as 'black' | 'white'}
+                lastMove={lastMoveVertex}
+                showCoordinates={true}
               />
             </div>
 
@@ -246,19 +272,19 @@ export default function GameViewerPage() {
               >
                 ← Prev
               </button>
-              <span className="px-4 py-2 text-sm font-medium w-28 text-center inline-block">
+              <span className="px-4 py-2 text-sm font-medium w-32 text-center inline-block">
                 {formatMoveDisplay(currentMoveIndex)}
               </span>
               <button
                 onClick={goToNext}
-                disabled={currentMoveIndex === moves.length}
+                disabled={currentMoveIndex === totalMoves}
                 className="px-3 py-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Next →
               </button>
               <button
                 onClick={goToEnd}
-                disabled={currentMoveIndex === moves.length}
+                disabled={currentMoveIndex === totalMoves}
                 className="px-3 py-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 End ⏭
@@ -292,60 +318,49 @@ export default function GameViewerPage() {
           </div>
         </div>
 
-        {/* Right Sidebar - Move List */}
+        {/* Right Sidebar - Move Timeline */}
         <div className="lg:col-span-3">
           <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="font-semibold text-center mb-3">Move List</h3>
-            <div className="max-h-[500px] overflow-y-auto text-xs">
-              <table className="w-full">
-                <tbody>
-                  {Array.from({ length: Math.ceil(moves.length / 2) }, (_, i) => {
-                    const moveNum = i + 1;
-                    const whiteIndex = i * 2;
-                    const blackIndex = i * 2 + 1;
-                    const whiteMove = moves[whiteIndex];
-                    const blackMove = moves[blackIndex];
-                    const whiteMoveIndex = whiteIndex + 1;
-                    const blackMoveIndex = blackIndex + 1;
-                    const whiteMistake = game.mistakes.find(m => m.moveIndex === whiteMoveIndex);
-                    const blackMistake = blackMove
-                      ? game.mistakes.find(m => m.moveIndex === blackMoveIndex)
-                      : null;
+            <h3 className="font-semibold text-center mb-3">Moves</h3>
+            <div className="overflow-x-auto py-4">
+              <div className="flex items-center px-2" style={{ minWidth: 'max-content' }}>
+                {parsedGame.moves.map((move, index) => {
+                  const moveIndex = index + 1;
+                  const hasMistake = game.mistakes.find(m => m.moveIndex === moveIndex);
+                  const isCurrentMove = currentMoveIndex === moveIndex;
+                  const isBlack = move.color === 'black';
 
-                    return (
-                      <tr key={moveNum}>
-                        <td className="px-1 py-0.5 text-gray-500 text-right font-mono text-xs">
-                          {moveNum}.
-                        </td>
-                        <td className="px-1 py-0.5">
-                          <button
-                            onClick={() => goToMove(whiteMoveIndex)}
-                            className={`px-1.5 py-0.5 rounded text-xs transition hover:bg-gray-100 ${
-                              currentMoveIndex === whiteMoveIndex ? 'bg-blue-100 font-semibold' : ''
-                            } ${whiteMistake ? 'bg-red-100 text-red-900 font-semibold' : ''}`}
-                          >
-                            {whiteMove}
-                          </button>
-                        </td>
-                        <td className="px-1 py-0.5">
-                          {blackMove && (
-                            <button
-                              onClick={() => goToMove(blackMoveIndex)}
-                              className={`px-1.5 py-0.5 rounded text-xs transition hover:bg-gray-100 ${
-                                currentMoveIndex === blackMoveIndex
-                                  ? 'bg-blue-100 font-semibold'
-                                  : ''
-                              } ${blackMistake ? 'bg-red-100 text-red-900 font-semibold' : ''}`}
-                            >
-                              {blackMove}
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                  return (
+                    <div key={index} className="flex items-center">
+                      {/* Connecting line */}
+                      {index > 0 && <div className="h-px bg-gray-300" style={{ width: '8px' }} />}
+
+                      {/* Move circle */}
+                      <button
+                        ref={el => (moveRefs.current[moveIndex] = el)}
+                        onClick={() => goToMove(moveIndex)}
+                        className={`
+                          relative flex-shrink-0 rounded-full flex items-center justify-center
+                          text-[10px] font-medium
+                          ${
+                            isBlack
+                              ? 'bg-black text-white border border-gray-400'
+                              : 'bg-white text-gray-900 border border-gray-400'
+                          }
+                          ${isCurrentMove ? 'ring-2 ring-blue-600' : ''}
+                          ${hasMistake && !isCurrentMove ? 'ring-2 ring-red-600' : ''}
+                        `}
+                        style={{
+                          width: '26px',
+                          height: '26px',
+                        }}
+                      >
+                        {moveIndex}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>

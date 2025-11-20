@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import * as gamesRepo from '@/lib/db/games-repository';
+import { parseSGF } from '@/lib/go/sgf-parser';
 
 const prisma = new PrismaClient();
 
@@ -22,7 +23,10 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: 'Game not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ game });
+    // Parse the SGF server-side so the client doesn't need to import @sabaki/sgf
+    const parsedGame = parseSGF(game.sgf);
+
+    return NextResponse.json({ game, parsedGame });
   } catch (error) {
     console.error('Failed to fetch game:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

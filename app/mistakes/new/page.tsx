@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { PlayerChessboard } from '@/components/PlayerChessboard';
-import { formatMoveDisplay } from '@/lib/utils/move-math';
+import { PlayerGoban } from '@/components/PlayerGoban';
+import { deserializeBoardState } from '@/lib/go/board-state-extractor';
+import type { BoardState } from '@/types/go';
 
 export default function NewMistakePage() {
   const router = useRouter();
@@ -11,7 +12,7 @@ export default function NewMistakePage() {
 
   const gameId = searchParams.get('gameId');
   const moveIndex = searchParams.get('moveIndex');
-  const fen = searchParams.get('fen');
+  const boardStateParam = searchParams.get('boardState');
 
   const [briefDescription, setBriefDescription] = useState('');
   const [primaryTag, setPrimaryTag] = useState('');
@@ -20,7 +21,8 @@ export default function NewMistakePage() {
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [playerColor, setPlayerColor] = useState<'white' | 'black'>('white');
+  const [playerColor, setPlayerColor] = useState<'white' | 'black'>('black');
+  const [boardState, setBoardState] = useState<BoardState | null>(null);
 
   useEffect(() => {
     // Fetch existing tags for autocomplete
@@ -39,7 +41,7 @@ export default function NewMistakePage() {
   }, []);
 
   useEffect(() => {
-    // Fetch game to get player color
+    // Fetch game to get player color and parse board state
     async function loadGame() {
       if (!gameId) return;
       try {
@@ -53,7 +55,17 @@ export default function NewMistakePage() {
       }
     }
     loadGame();
-  }, [gameId]);
+
+    // Parse board state from URL parameter
+    if (boardStateParam) {
+      try {
+        const parsed = deserializeBoardState(decodeURIComponent(boardStateParam));
+        setBoardState(parsed);
+      } catch (err) {
+        console.error('Failed to parse board state:', err);
+      }
+    }
+  }, [gameId, boardStateParam]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,7 +79,7 @@ export default function NewMistakePage() {
         body: JSON.stringify({
           gameId,
           moveIndex: parseInt(moveIndex || '0', 10),
-          fenPosition: fen,
+          boardState: boardStateParam,
           briefDescription,
           primaryTag,
           detailedReflection: detailedReflection || undefined,
@@ -97,7 +109,7 @@ export default function NewMistakePage() {
     setShowTagSuggestions(false);
   };
 
-  if (!gameId || !moveIndex || !fen) {
+  if (!gameId || !moveIndex || !boardStateParam || !boardState) {
     return (
       <div className="max-w-4xl mx-auto mt-8">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6">
@@ -115,6 +127,11 @@ export default function NewMistakePage() {
       </div>
     );
   }
+
+  const formatMoveDisplay = (index: number): string => {
+    if (index === 0) return 'Start';
+    return `Move ${index}`;
+  };
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -134,7 +151,7 @@ export default function NewMistakePage() {
         <div className="bg-white rounded-lg shadow p-4">
           <h3 className="font-semibold mb-3">Position</h3>
           <div className="max-w-md mx-auto">
-            <PlayerChessboard position={fen} playerColor={playerColor} />
+            <PlayerGoban boardState={boardState} playerColor={playerColor} showCoordinates={true} />
           </div>
         </div>
 
@@ -245,9 +262,9 @@ What would you need to think about differently next time?"
         <h3 className="font-semibold text-blue-900 mb-2">Reflection Prompts:</h3>
         <ul className="text-sm text-blue-800 space-y-1">
           <li>• What candidate moves did you consider?</li>
-          <li>• What was your opponent&apos;s threat that you missed?</li>
-          <li>• Did you calculate far enough?</li>
-          <li>• What pattern or principle would have helped you?</li>
+          <li>• What was your opponent&apos;s plan or threat that you missed?</li>
+          <li>• Did you read out the sequence far enough?</li>
+          <li>• What shape, joseki, or tesuji would have helped you?</li>
           <li>• What will you look for differently next time?</li>
         </ul>
       </div>

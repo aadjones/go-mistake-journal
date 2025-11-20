@@ -13,7 +13,7 @@ export function Header() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-8">
             <Link href="/mistakes" className="text-2xl font-bold text-gray-900 hover:text-gray-700">
-              Chess Mistake Journal
+              Go Mistake Journal
             </Link>
             <nav className="flex gap-6">
               <Link

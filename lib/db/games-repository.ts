@@ -7,18 +7,18 @@ import type { Mistake } from '@/types/mistake';
  */
 function toDomainGame(prismaGame: {
   id: string;
-  pgn: string;
+  sgf: string;
   playerColor: string;
-  opponentRating: number | null;
+  opponentRank: string | null;
   timeControl: string | null;
   datePlayed: Date | null;
   createdAt: Date;
 }): Game {
   return {
     id: prismaGame.id,
-    pgn: prismaGame.pgn,
+    sgf: prismaGame.sgf,
     playerColor: prismaGame.playerColor as 'white' | 'black',
-    opponentRating: prismaGame.opponentRating ?? undefined,
+    opponentRank: prismaGame.opponentRank ?? undefined,
     timeControl: prismaGame.timeControl ?? undefined,
     datePlayed: prismaGame.datePlayed ?? undefined,
     createdAt: prismaGame.createdAt,
@@ -32,7 +32,7 @@ function toDomainMistake(prismaMistake: {
   id: string;
   gameId: string;
   moveIndex: number;
-  fenPosition: string;
+  boardState: string;
   briefDescription: string;
   primaryTag: string;
   detailedReflection: string | null;
@@ -43,7 +43,7 @@ function toDomainMistake(prismaMistake: {
     id: prismaMistake.id,
     gameId: prismaMistake.gameId,
     moveIndex: prismaMistake.moveIndex,
-    fenPosition: prismaMistake.fenPosition,
+    boardState: prismaMistake.boardState,
     briefDescription: prismaMistake.briefDescription,
     primaryTag: prismaMistake.primaryTag,
     detailedReflection: prismaMistake.detailedReflection ?? undefined,
@@ -58,9 +58,9 @@ function toDomainMistake(prismaMistake: {
 export async function createGame(prisma: PrismaClient, input: CreateGameInput): Promise<Game> {
   const game = await prisma.game.create({
     data: {
-      pgn: input.pgn,
+      sgf: input.sgf,
       playerColor: input.playerColor,
-      opponentRating: input.opponentRating,
+      opponentRank: input.opponentRank,
       timeControl: input.timeControl,
       datePlayed: input.datePlayed,
     },

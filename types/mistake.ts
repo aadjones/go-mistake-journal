@@ -2,7 +2,7 @@ export interface Mistake {
   id: string;
   gameId: string;
   moveIndex: number;
-  fenPosition: string;
+  boardState: string; // JSON serialized BoardState
   briefDescription: string;
   primaryTag: string;
   detailedReflection?: string;
@@ -13,7 +13,7 @@ export interface Mistake {
 export interface CreateMistakeInput {
   gameId: string;
   moveIndex: number;
-  fenPosition: string;
+  boardState: string; // JSON serialized BoardState
   briefDescription: string;
   primaryTag: string;
   detailedReflection?: string;

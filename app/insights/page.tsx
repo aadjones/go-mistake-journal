@@ -148,7 +148,7 @@ export default function InsightsPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">AI Insights</h1>
         <p className="text-gray-600">
-          Discover patterns and themes in your chess mistakes using AI analysis
+          Discover patterns and themes in your Go mistakes using AI analysis
         </p>
       </div>
 

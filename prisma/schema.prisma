@@ -12,9 +12,9 @@ datasource db {
 
 model Game {
   id              String    @id @default(cuid())
-  pgn             String    @unique
+  sgf             String    @unique
   playerColor     String    // "white" or "black"
-  opponentRating  Int?
+  opponentRank    String?   // Go rank (e.g., "5k", "2d")
   timeControl     String?
   datePlayed      DateTime?
   createdAt       DateTime  @default(now())
@@ -28,8 +28,8 @@ model Mistake {
   id                 String   @id @default(cuid())
   gameId             String
   game               Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  moveIndex          Int      // Exact position in moves array (0 = start, 1 = after White's 1st move, 2 = after Black's 1st move, etc.)
-  fenPosition        String
+  moveIndex          Int      // Exact position in moves array (0 = start, 1 = after first move, etc.)
+  boardState         String   // JSON serialized BoardState (signMap, boardSize, captures)
   briefDescription   String
   primaryTag         String
   detailedReflection String?
