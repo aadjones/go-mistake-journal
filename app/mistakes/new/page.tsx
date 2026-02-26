@@ -1,12 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { PlayerGoban } from '@/components/PlayerGoban';
 import { deserializeBoardState } from '@/lib/go/board-state-extractor';
 import type { BoardState } from '@/types/go';
 
 export default function NewMistakePage() {
+  return (
+    <Suspense>
+      <NewMistakePageContent />
+    </Suspense>
+  );
+}
+
+function NewMistakePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 

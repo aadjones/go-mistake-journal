@@ -39,6 +39,8 @@
     "@types/node": "^24.10.0",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
+    "@types/sabaki__immutable-gametree": "^1.9.1",
+    "@types/sabaki__sgf": "^3.4.0",
     "@vitest/coverage-v8": "^4.0.7",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.39.1",

@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     // Format mistakes for Claude
     const mistakesSummary = mistakes
       .map((m, idx) => {
-        const gameContext = `${m.game.playerColor} vs ${m.game.opponentRating || 'opponent'}, ${m.game.timeControl || 'unknown time control'}`;
+        const gameContext = `${m.game.playerColor} vs ${m.game.opponentRank || 'opponent'}, ${m.game.timeControl || 'unknown time control'}`;
         return `${idx + 1}. [${m.primaryTag}] ${m.briefDescription}
    Game: ${gameContext}
    Reflection: ${m.detailedReflection || 'No detailed reflection'}`;
