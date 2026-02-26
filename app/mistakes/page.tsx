@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { PlayerGoban } from '@/components/PlayerGoban';
 import { deserializeBoardState } from '@/lib/go/board-state-extractor';
@@ -15,6 +15,14 @@ interface TagStat {
 }
 
 export default function MistakesListPage() {
+  return (
+    <Suspense>
+      <MistakesListPageContent />
+    </Suspense>
+  );
+}
+
+function MistakesListPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedTag = searchParams.get('tag') || '';
@@ -287,8 +295,8 @@ export default function MistakesListPage() {
                         <div className="pt-2 border-t text-sm text-gray-600">
                           <p>
                             <strong>Game:</strong> {mistake.game.playerColor} vs{' '}
-                            {mistake.game.opponentRating
-                              ? `${mistake.game.opponentRating}`
+                            {mistake.game.opponentRank
+                              ? `${mistake.game.opponentRank}`
                               : 'opponent'}
                             {mistake.game.timeControl &&
                               ` • ${formatTimeControl(mistake.game.timeControl)}`}

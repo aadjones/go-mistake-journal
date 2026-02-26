@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { PlayerGoban } from '@/components/PlayerGoban';
 import { MoveNavigator } from '@/lib/go/move-navigator';
@@ -18,6 +18,14 @@ import type { ParsedGame, Vertex } from '@/types/go';
 type GameWithMistakes = Game & { mistakes: Mistake[] };
 
 export default function GameViewerPage() {
+  return (
+    <Suspense>
+      <GameViewerPageContent />
+    </Suspense>
+  );
+}
+
+function GameViewerPageContent() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -328,7 +336,9 @@ export default function GameViewerPage() {
 
                       {/* Move circle */}
                       <button
-                        ref={el => (moveRefs.current[moveIndex] = el)}
+                        ref={el => {
+                          moveRefs.current[moveIndex] = el;
+                        }}
                         onClick={() => goToMove(moveIndex)}
                         className={`
                           relative flex-shrink-0 rounded-full flex items-center justify-center
